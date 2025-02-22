@@ -1,4 +1,3 @@
-#program once
 #ifndef process_H
 #define process_H
 
@@ -30,5 +29,4 @@ float computeTreeHeight(PointCloud::Ptr cloud);
 float computeTrunkHeight(PointCloud::Ptr cloud);
 float computeDBH(PointCloud::Ptr cloud, float ground_z);
 float computeCanopyVolume(PointCloud::Ptr cloud, float trunk_height);
-
 #endif // process_H

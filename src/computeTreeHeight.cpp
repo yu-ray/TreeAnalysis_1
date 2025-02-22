@@ -1,4 +1,4 @@
-#include "main.h"
+#include "process.h"
 
 // 计算树高（最大Z-最小Z）
 float computeTreeHeight(PointCloud::Ptr cloud)

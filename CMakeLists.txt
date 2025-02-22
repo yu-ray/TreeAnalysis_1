@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 project(TreeAnalysis)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 #找三方库
 find_package(PCL REQUIRED)
 find_package(PDAL REQUIRED)

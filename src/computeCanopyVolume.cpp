@@ -1,4 +1,4 @@
-#include "main.h"
+#include "process.h"
 
 // 修改后的计算树冠体积函数
 float computeCanopyVolume(PointCloud::Ptr cloud, float trunk_height)
