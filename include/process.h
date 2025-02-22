@@ -1,6 +1,6 @@
 #program once
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef process_H
+#define process_H
 
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
@@ -31,4 +31,4 @@ float computeTrunkHeight(PointCloud::Ptr cloud);
 float computeDBH(PointCloud::Ptr cloud, float ground_z);
 float computeCanopyVolume(PointCloud::Ptr cloud, float trunk_height);
 
-#endif // MAIN_H
+#endif // process_H
