@@ -1,4 +1,4 @@
-#include "../include/process.h" 
+#include "process.h" 
 
 // 可视化点云
 void visualizeCloud(PointCloud::Ptr cloud, const std::string &viewerName)

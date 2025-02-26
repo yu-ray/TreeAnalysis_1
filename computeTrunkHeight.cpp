@@ -1,4 +1,4 @@
-#include "../include/process.h" 
+#include "process.h" 
 
 // 计算树干高度（简化版：取前5%高度作为主干）
 float computeTrunkHeight(PointCloud::Ptr cloud)

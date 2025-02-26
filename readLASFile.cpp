@@ -1,4 +1,4 @@
-#include "../include/process.h" 
+#include "process.h" 
 
 // 读取LAS文件
 PointCloud::Ptr readLASFile(const std::string &filename)
