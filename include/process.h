@@ -1,6 +1,7 @@
-#ifndef process_H
-#define process_H
+#ifndef PROCESS_H
+#define PROCESS_H
 
+//文件引用
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h>
@@ -29,4 +30,5 @@ float computeTreeHeight(PointCloud::Ptr cloud);
 float computeTrunkHeight(PointCloud::Ptr cloud);
 float computeDBH(PointCloud::Ptr cloud, float ground_z);
 float computeCanopyVolume(PointCloud::Ptr cloud, float trunk_height);
-#endif // process_H
+
+#endif // PROCESS_H
