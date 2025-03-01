@@ -3,15 +3,6 @@
         {
             "name": "Win32",
             "includePath": [
-                "D:/swjtu/ku_3part/PCL-1.14.1/include/pcl-1.14/**",
-                "D:/swjtu/ku_3part/PCL-1.14.1/3rdParty/Eigen3/include/eigen3/**",
-                "D:/swjtu/ku_3part/PCL-1.14.1/3rdParty/Boost/include/boost-1_84/**",
-                "D:/swjtu/ku_3part/PCL-1.14.1/3rdParty/VTK/include/vtk-9.3/**",
-                "D:/swjtu/ku_3part/PCL-1.14.1/3rdParty/FLANN/include/**",
-                "D:/swjtu/ku_3part/PCL-1.14.1/3rdParty/Qhull/include/**",
-                "D:/swjtu/ku_3part/OSGeo4W/include/**",
-                "${workspaceFolder}/include/**",
-                "${workspaceFolder}/src/**",
                 "${workspaceFolder}/**"
             ],
             "defines": [
@@ -22,10 +13,9 @@
             "windowsSdkVersion": "10.0.22621.0",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "windows-msvc-x64",
+            "intelliSenseMode": "windows-gcc-x64",
             "configurationProvider": "ms-vscode.cmake-tools",
-            "compilerPath": "D:/Apps/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.40.33807/bin/Hostx64/x64/cl.exe",
-            "mergeConfigurations": true
+            "compilerPath": "D:/Apps/mingw64/bin/gcc.exe"
         }
     ],
     "version": 4
