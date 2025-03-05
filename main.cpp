@@ -1,110 +1,137 @@
-// main.cpp
-#include "TreeFeatures.h"
-#include "ColorLUT.h"
 #include <iostream>
-#include <cmath>       // 添加isfinite函数支持
-#include <Windows.h>   // 在包含PDAL头文件前包含Windows头
-#include <filesystem>  // 添加文件系统支持
+#include <vector>
+#include <memory>
+
+#include <pdal/Options.hpp>
 #include <pdal/io/LasReader.hpp>
-#include <pdal/io/LasHeader.hpp> 
+#include <pdal/io/LasHeader.hpp>
 #include <pdal/PointTable.hpp>
 #include <pdal/PointView.hpp>
-#include <pcl/visualization/pcl_visualizer.h>
+#include <pdal/StageFactory.hpp>
+#include <pdal/Stage.hpp>
+#include <pdal/PluginDirectory.hpp>
+#include <pdal/PluginManager.hpp>
 
-// 显式声明点云类型
-using PointT = pcl::PointXYZRGB;
-using CloudPtr = pcl::PointCloud<PointT>::Ptr;
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>	
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/common/common.h>
+
+#include <boost/thread/thread.hpp>
+
+typedef pcl::PointXYZRGB PointT;
 using namespace std;
 
+// pdal库读写las
+void readlasPC(pcl::PointCloud<PointT>::Ptr &cloud0, const string &filename)
+{
+	pdal::Option las_opt("filename", filename);
+	pdal::Options las_opts;
+	las_opts.add(las_opt);
+	pdal::LasReader las_reader;
+	pdal::PointTable table;
+	las_reader.setOptions(las_opts);
+	las_reader.prepare(table);
+	pdal::PointViewSet point_view_set = las_reader.execute(table);
+	pdal::PointViewPtr point_view = *point_view_set.begin();
+	pdal::LasHeader las_header = las_reader.header();
 
-CloudPtr read_las_optimized(const string& filename) {
-    using namespace pdal;  // 添加PDAL命名空间
+	// 头文件信息
+	unsigned int PointCount = las_header.pointCount();
+	double scale_x = las_header.scaleX();
+	double scale_y = las_header.scaleY();
+	double scale_z = las_header.scaleZ();
+	double offset_x = las_header.offsetX();
+	double offset_y = las_header.offsetY();
+	double offset_z = las_header.offsetZ();
 
-    if (!std::filesystem::exists(filename)) throw runtime_error("File not found");
-    
-    pdal::LasReader reader;  // 明确使用pdal命名空间
-    pdal::Options opts;
-    opts.add("filename", filename);
-    reader.setOptions(opts);
+	// 读点
+	cout << "读取点云数据..." << endl;
+	cout << "Scale factors: (" 
+	<< las_header.scaleX() << ", "
+	<< las_header.scaleY() << ", "
+	<< las_header.scaleZ() << ")\n"
+	<< "Offsets: ("
+	<< las_header.offsetX() << ", "
+	<< las_header.offsetY() << ", "
+	<< las_header.offsetZ() << ")" << endl;
 
-    pdal::PointTable table;
-    reader.prepare(table);
+    const double color_scale = 255.0 / 65535.0;  // 正确的颜色缩放比例
+	for (pdal::PointId id = 0; id < point_view->size(); ++id)
+	{
+		double x = point_view->getFieldAs<double>(pdal::Dimension::Id::X, id);
+		double y = point_view->getFieldAs<double>(pdal::Dimension::Id::Y, id);
+		double z = point_view->getFieldAs<double>(pdal::Dimension::Id::Z, id);
 
-    // 修改此处获取header的方式
-    const pdal::LasHeader& header = reader.header();  // 添加命名空间限定
-    const pdal::point_count_t count = header.pointCount();
+		double red = point_view->getFieldAs<double>(pdal::Dimension::Id::Red, id);
+		double green = point_view->getFieldAs<double>(pdal::Dimension::Id::Green, id);
+		double blue = point_view->getFieldAs<double>(pdal::Dimension::Id::Blue, id);
 
-    CloudPtr cloud = pcl::make_shared<pcl::PointCloud<PointT>>();
-    cloud->reserve(count);
-
-    // 分块读取
-    constexpr point_count_t BLOCK_SIZE = 1000000;
-    point_count_t remaining = count;
-
-    while (remaining > 0) {
-        PointViewSet viewSet = reader.execute(table);
-        PointViewPtr view = *viewSet.begin();
-        const point_count_t actual_count = min(BLOCK_SIZE, remaining);
-
-        {
-            const size_t start_idx = cloud->size();
-            cloud->resize(start_idx + view->size());
-
-            // 顺序处理点云数据转换
-            for (size_t i = 0; i < view->size(); ++i) {
-                auto& pcl_point = (*cloud)[start_idx + i];
-                
-                pcl_point.x = view->getFieldAs<double>(Dimension::Id::X, i);
-                pcl_point.y = view->getFieldAs<double>(Dimension::Id::Y, i);
-                pcl_point.z = view->getFieldAs<double>(Dimension::Id::Z, i);
-
-                if (!isfinite(pcl_point.x)) pcl_point.x = 0;
-                if (!isfinite(pcl_point.y)) pcl_point.y = 0;
-                if (!isfinite(pcl_point.z)) pcl_point.z = 0;
-
-                const auto color_conv = [](uint16_t v) -> uint8_t {
-                    return ColorLUT::convert(v); // ✅ 通过公共接口访问
-                };
-
-                pcl_point.r = ColorLUT::convert(view->getFieldAs<uint16_t>(Dimension::Id::Red, i));
-                pcl_point.g = ColorLUT::convert(view->getFieldAs<uint16_t>(Dimension::Id::Green, i));
-                pcl_point.b = ColorLUT::convert(view->getFieldAs<uint16_t>(Dimension::Id::Blue, i));
-            }
-
-            cloud->width = cloud->size();
-            cloud->height = 1;
-            cloud->is_dense = false;
-        }
-
-        remaining -= actual_count;
-    }
-
-    return cloud;
+        PointT point;
+        point.x = x*scale_x + offset_x;
+		point.y = y*scale_y + offset_y;
+		point.z = z*scale_z + offset_z;
+        point.r = static_cast<uint8_t>(red * color_scale);
+        point.g = static_cast<uint8_t>(green * color_scale);
+        point.b = static_cast<uint8_t>(blue * color_scale);
+        
+        cloud0->push_back(point);
+	}
+	cout << "读取点云数据成功，共"<<point_view->size()<<"个点" << endl;
 }
 
-int main() {
-    try {
-        cout << "Hello, World!" << endl;
-        auto cloud = read_las_optimized("tree01.las");
-        auto features = TreeFeatures::compute(cloud);
+int main()
+{
+	cout << "Hello, World!" << endl;
 
-        // 输出结果
-        cout << "=== Tree Analysis Report ===\n"
-            << "Height:       " << features.height << " m\n"
-            << "DBH:         " << features.dbh << " m\n"
-            << "Crown Volume: " << features.crown_volume << " m³\n"
-            << "===========================\n";
+	string filename = ("D:/swjtu/ku_VSCode/TreeAnalysis_1/tree01.las"); // 使用原始字符串
+	cout << "加载文件: " << filename << endl;
+	pcl::PointCloud<PointT>::Ptr cloud0(new pcl::PointCloud<PointT>);
 
-        // 可选可视化（调试时启用）
-        pcl::visualization::PCLVisualizer viewer("Cloud");
-        viewer.addPointCloud(cloud);
-        viewer.spin();
+	readlasPC(cloud0, filename);
 
-        return EXIT_SUCCESS;
-    }
-    catch (const exception& e) {
-        cerr << "Error: " << e.what() << endl;
-        return EXIT_FAILURE;
-    }
+	// 输出点云范围
+	pcl::PointXYZRGB min_pt, max_pt;
+	pcl::getMinMax3D(*cloud0, min_pt, max_pt);
+	cout << "点云范围:\n"
+     << "X: " << min_pt.x << " - " << max_pt.x << "\n"
+     << "Y: " << min_pt.y << " - " << max_pt.y << "\n"
+     << "Z: " << min_pt.z << " - " << max_pt.z << endl;
+
+	pcl::visualization::PCLVisualizer viewer("3D Viewer");
+	// 设置可视化参数
+	viewer.setBackgroundColor(0.5, 0.5, 0.5); // 灰色背景
+	viewer.initCameraParameters();           // 初始化相机参数
+	// 使用RGB颜色处理
+	pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud0);
+	viewer.addPointCloud<PointT>(cloud0, rgb, "sample cloud");
+	// 调整坐标系参数
+	viewer.addCoordinateSystem(0.1, "global");
+
+	// 计算动态参数
+	const double range_x = max_pt.x - min_pt.x;
+	const double range_y = max_pt.y - min_pt.y;
+	const double range_z = max_pt.z - min_pt.z;
+	// 设置相机参数
+	viewer.setCameraPosition(
+		(min_pt.x + max_pt.x)/2 - 2*range_x,  // 相机X位置
+		(min_pt.y + max_pt.y)/2 - 2*range_y,  // 相机Y位置
+		max_pt.z + 5*range_z,                // 相机Z位置（5倍高度上方）
+		(min_pt.x + max_pt.x)/2,             // 目标点X
+		(min_pt.y + max_pt.y)/2,             // 目标点Y
+		(min_pt.z + max_pt.z)/2,             // 目标点Z
+		0, 1, 0);                            // 上方向
+
+    // 调整点云显示大小
+	viewer.setPointCloudRenderingProperties(
+		pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 
+		1,  // 增大点尺寸
+		"sample cloud");
+	
+	while (!viewer.wasStopped())
+	{
+		viewer.spinOnce(100);
+	}
+	return 0;
 }
-
